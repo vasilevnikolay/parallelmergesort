@@ -2,71 +2,63 @@ package src;//import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 
-public class parallelmergesort {
+import static org.junit.Assert.assertTrue;
 
-    private static void insertionsort(double[] taulukko, int ala, int yla){
-        for(int i = ala+1; i <= yla; i++){
-            int j = ala;
-            double lisattava = taulukko[i];
-            while(j < i && lisattava >= taulukko[j])
-                j++;
-            int k = i;
-            while(k > j) {
-                taulukko[k] = taulukko[k - 1];
-                k--;
-            }
-            taulukko[j] = lisattava;
-        }
-    }
-    public static void mergesort(double[] taulukko, int ala, int yla, double[] apu) {
-        if(yla - ala > 20){
-            int mid = (ala+yla)/2;
-            mergesort(taulukko,ala,mid,apu);
-            mergesort(taulukko,mid+1,yla,apu);
-            merge(taulukko,ala,mid,yla,apu);
-        }
-        else
-            insertionsort(taulukko, ala, yla);
-    }
+public class parallelmergesort {
 
     private static void alusta(double[] taulukko){
         Random gen = new Random(2016);
         for (int i = 0; i < taulukko.length; i++)
             taulukko[i] = gen.nextDouble();
     }
-    private static void merge(double[] taulukko, int ala, int mid, int yla, double[] apu) {
-        for (int i = ala; i <= yla; i++)
-            apu[i] = taulukko[i];
 
-        int i = ala;
-        int j = mid + 1;
-        int ind = ala;
+    public static void main(String[] args) {
 
-        while(i <= mid && j <= yla) {
-            if (apu[i] <= apu[j]) {
-                taulukko[ind] = apu[i];
-                i++;
-            } else {
-                taulukko[ind] = apu[j];
-                j++;
-            }
-            ind++;
-        }
+        final int TAULUKONPITUUS = 40000000;
+        final int SAIKEITA = 512;
+        final int PERSAIE = (TAULUKONPITUUS + SAIKEITA - 1) / SAIKEITA;
 
-        while(i <= mid){
-            taulukko[ind] = apu[i];
-            i++;
-            ind++;
-        }
-    }
-    public static void main(String[] args){
-        final int taulukkoPituus = 20;
-        double[] taulukko = new double[taulukkoPituus];
-        double[] apu = new double[taulukkoPituus];
+        double[] taulukko = new double[TAULUKONPITUUS];
+        double[] apu = new double[TAULUKONPITUUS];
+        Thread[] saikeet = new Thread[SAIKEITA];
+        SortingThread[] lajittelusaikeet = new SortingThread[SAIKEITA];
         alusta(taulukko);
-        //mergesort(taulukko,0,taulukkoPituus-1,apu);
-        for (int i = 1; i < taulukkoPituus; i++)
-           // assertTrue(taulukko[i-1] <= taulukko[i]);
-        System.out.println(taulukko[i]);
+        /*mergesort(taulukko,0,TAULUKONPITUUS-1,apu);
+        for (int i = 1; i < TAULUKONPITUUS; i++)
+            assertTrue(taulukko[i-1] <= taulukko[i]);
+        */
+        //System.out.println(taulukko[i]);
+        for (int i = 0; i < SAIKEITA; i++) {
+            lajittelusaikeet[i] = new SortingThread(taulukko, apu, i * PERSAIE, Math.min((i + 1) * PERSAIE, TAULUKONPITUUS) - 1);
+            saikeet[i] = new Thread(lajittelusaikeet[i]);
+            saikeet[i].start();
+        }
+
+        for (int i = 0; i < SAIKEITA; i++)
+            try {
+                saikeet[i].join();
+            } catch (InterruptedException e) {
+                System.err.println("Aw, snap!");
+                e.printStackTrace();
+            }
+        for (int i = 2; i <= SAIKEITA; i = i << 1) {
+            for (int j = 0; j < SAIKEITA; j += i) {
+                lajittelusaikeet[j].setMiddle(lajittelusaikeet[j].getLast());
+                lajittelusaikeet[j].setLast(lajittelusaikeet[j + i / 2].getLast());
+                saikeet[j] = new Thread(lajittelusaikeet[j]);
+                saikeet[j].start();
+            }
+
+            for (int j = 0; j < SAIKEITA; j += i) {
+                try {
+                    saikeet[j].join();
+                } catch (InterruptedException e) {
+                    System.err.println("Aw, snap!");
+                    e.printStackTrace();
+                }
+            }
+        }
+        for (int i = 1; i < TAULUKONPITUUS; i++)
+            assertTrue(taulukko[i-1] <= taulukko[i]);
     }
 }
