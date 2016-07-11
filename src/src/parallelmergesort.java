@@ -2,6 +2,7 @@ package src;//import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.ForkJoinPool;
 
 import static org.junit.Assert.assertTrue;
 
@@ -15,8 +16,8 @@ public class parallelmergesort {
 
     public static void main(String[] args) {
 
-        final int TAULUKONPITUUS = 50000000;
-        final int SAIKEITA = 512;
+        final int TAULUKONPITUUS = 500000000;
+        final int SAIKEITA = 32;
         final int PERSAIE = (TAULUKONPITUUS + SAIKEITA - 1) / SAIKEITA;
 
         double[] taulukko = new double[TAULUKONPITUUS];
@@ -26,7 +27,7 @@ public class parallelmergesort {
         alusta(taulukko);
 
         long start = System.nanoTime();
-        for (int i = 0; i < SAIKEITA; i++) {
+        /*for (int i = 0; i < SAIKEITA; i++) {
             SortingThread sortingThread = new SortingThread(taulukko, apu, i * PERSAIE, Math.min((i + 1) * PERSAIE, TAULUKONPITUUS) - 1);
             Thread t = new Thread(sortingThread);
             sortingThread.addToSortinThreads(i, t);
@@ -40,9 +41,12 @@ public class parallelmergesort {
         } catch (InterruptedException e) {
             System.err.println("Aw, snap!");
             e.printStackTrace();
-        }
+        }*/
+        /*ForkJoinPool pool = new ForkJoinPool();
+        SortingAction sortingAction = new SortingAction(taulukko, apu, 0, TAULUKONPITUUS-1);
+        pool.invoke(sortingAction);*/
         //Arrays.sort(taulukko);
-        //Arrays.parallelSort(taulukko);
+        Arrays.parallelSort(taulukko);
 
         long end = System.nanoTime();
         System.out.println("Kesto: " + (end-start)/1000000);
