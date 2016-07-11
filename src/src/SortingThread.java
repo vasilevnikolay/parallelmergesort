@@ -6,7 +6,20 @@ public class SortingThread implements Runnable {
     private int last;
     private double[] array;
     private double[] aux;
+    private static SortingThread[] sortingThreads;
+    private static Thread[] threads;
+    private int ind;
 
+    public static void initSortinThread(int size){
+        sortingThreads = new SortingThread[size];
+        threads = new Thread[size];
+    }
+
+    public void addToSortinThreads(int ind, Thread t){
+        this.ind = ind;
+        sortingThreads[ind] = this;
+        threads[ind] = t;
+    }
     public SortingThread(double[] array, double[] aux, int first, int last){
         this.first = first;
         this.middle = -1;
@@ -15,15 +28,7 @@ public class SortingThread implements Runnable {
         this.aux = aux;
     }
 
-    public int getMiddle() {
-        return middle;
-    }
-
-    public void setMiddle(int middle) {
-        this.middle = middle;
-    }
-
-    public int getLast() {
+    private int getLast() {
         return last;
     }
 
@@ -94,9 +99,21 @@ public class SortingThread implements Runnable {
      */
     @Override
     public void run() {
-        if (this.middle < 1)
-            mergesort(this.array, this.first, this.last, this.aux);
-        else
-            merge(this.array, this.first, this.middle, this.last, this.aux);
+        mergesort(this.array, this.first, this.last, this.aux);
+
+        for(int i = 2; i <= sortingThreads.length; i <<= 1){
+            if (ind % i == 0){
+                try {
+                    threads[ind+i/2].join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    System.err.println("Aw, snap!");
+                    System.exit(-1);
+                }
+                this.middle = this.last;
+                this.last = sortingThreads[ind+i/2].getLast();
+                merge(this.array, this.first, this.middle, this.last, this.aux);
+            }
+        }
     }
 }
